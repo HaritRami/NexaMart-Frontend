@@ -228,28 +228,48 @@ const CheckoutView = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      const authConfig = getAuthConfig();
-      if (!authConfig) return;
+  try {
+    const authConfig = getAuthConfig();
+    if (!authConfig) return;
 
-      // Here you would typically:
-      // 1. Validate all form fields
-      // 2. Process payment with payment gateway
-      // 3. Create order in your backend
-      // 4. Clear cart after successful order
+    const amount = totalPrice - discount;
 
-      toast.success('Order placed successfully!');
-      navigate('/order-confirmation'); // Navigate to order confirmation page
-    } catch (error) {
-      console.error('Checkout error:', error);
-      toast.error(error.response?.data?.message || 'Error processing checkout');
-    } finally {
-      setLoading(false);
-    }
-  };
+    const { data } = await axios.post("http://localhost:5000/api/payment/razor/create-order", {
+      amount
+    }, authConfig);
+
+    const options = {
+     key: process.env.REACT_APP_RAZORPAY_KEY_ID,
+      amount: data.order.amount,
+      currency: "INR",
+      name: "NextMart Store",
+      description: "Order Payment",
+      order_id: data.order.id,
+      handler: function (response) {
+        toast.success("Payment Successful!");
+        navigate('/order-confirmation');
+      },
+      prefill: {
+        email: formData.email,
+        contact: formData.mobile
+      }
+    };
+
+    console.log("Options = ",options);
+    
+
+    const rzp1 = new window.Razorpay(options);
+    rzp1.open();
+
+  } catch (error) {
+    toast.error("Payment Failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (loading) {
     return (
